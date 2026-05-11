@@ -24,6 +24,9 @@ go.work.sum
 # env file
 .env
 # Database files
+# SQLite temporary files
 *.db
+*.db-shm
+*.db-wal
 # .idea/
 # .vscode/
