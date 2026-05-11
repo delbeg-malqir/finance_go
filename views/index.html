@@ -1,0 +1,536 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>COMP // FINANCE TERMINAL</title>
+    <script src="https://unpkg.com/htmx.org@1.9.10"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Rajdhani:wght@400;600;700&family=Orbitron:wght@400;700;900&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg:        #080808;
+            --bg2:       #0e0e0e;
+            --bg3:       #141414;
+            --amber:     #e8a020;
+            --amber-dim: #a06010;
+            --amber-glow:#ff8c00;
+            --red:       #cc2200;
+            --red-dim:   #661100;
+            --green:     #44bb44;
+            --text:      #e8d8b0;
+            --text-dim:  #887050;
+            --border:    #3a2a10;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body {
+            background-color: var(--bg);
+            color: var(--text);
+            font-family: 'Rajdhani', sans-serif;
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        /* Scanlines */
+        body::before {
+            content: '';
+            position: fixed;
+            inset: 0;
+            background: repeating-linear-gradient(
+                0deg,
+                transparent,
+                transparent 2px,
+                rgba(0,0,0,0.15) 2px,
+                rgba(0,0,0,0.15) 4px
+            );
+            pointer-events: none;
+            z-index: 9999;
+        }
+
+        .mono { font-family: 'Share Tech Mono', monospace; }
+        .orbitron { font-family: 'Orbitron', monospace; }
+
+        .amber { color: var(--amber); }
+        .amber-glow {
+            color: var(--amber-glow);
+            text-shadow: 0 0 10px var(--amber-glow), 0 0 30px rgba(255,140,0,0.3);
+        }
+        .red-glow {
+            color: var(--red);
+            text-shadow: 0 0 10px var(--red), 0 0 30px rgba(204,34,0,0.3);
+        }
+        .green-glow {
+            color: var(--green);
+            text-shadow: 0 0 10px var(--green);
+        }
+
+        @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.3} }
+        .blink { animation: blink 1.5s infinite; }
+
+        @keyframes slide-in {
+            from { opacity: 0; transform: translateX(-10px); }
+            to   { opacity: 1; transform: translateX(0); }
+        }
+        .slide-in { animation: slide-in 0.3s ease forwards; }
+
+        .stat-card {
+            background: var(--bg2);
+            border: 1px solid var(--border);
+            padding: 1.25rem;
+            position: relative;
+            clip-path: polygon(12px 0%, 100% 0%, 100% calc(100% - 12px), calc(100% - 12px) 100%, 0% 100%, 0% 12px);
+        }
+        .stat-card::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; right: 0;
+            height: 2px;
+            background: linear-gradient(90deg, transparent, var(--amber), transparent);
+        }
+
+        .label {
+            font-family: 'Share Tech Mono', monospace;
+            font-size: 10px;
+            letter-spacing: 0.2em;
+            color: var(--text-dim);
+            text-transform: uppercase;
+        }
+
+        .month-btn {
+            font-family: 'Share Tech Mono', monospace;
+            font-size: 11px;
+            padding: 6px 14px;
+            border: 1px solid var(--border);
+            background: var(--bg2);
+            color: var(--text-dim);
+            clip-path: polygon(8px 0%, 100% 0%, calc(100% - 8px) 100%, 0% 100%);
+            transition: all 0.2s;
+            cursor: pointer;
+            text-decoration: none;
+            display: inline-block;
+            white-space: nowrap;
+        }
+        .month-btn:hover {
+            border-color: var(--amber-dim);
+            color: var(--amber);
+            background: rgba(232,160,32,0.05);
+        }
+        .month-btn.active {
+            border-color: var(--amber);
+            color: var(--amber-glow);
+            background: rgba(232,160,32,0.1);
+            text-shadow: 0 0 8px var(--amber-glow);
+        }
+
+        .comp-input {
+            background: var(--bg);
+            border: 1px solid var(--border);
+            color: var(--text);
+            padding: 10px 12px;
+            font-family: 'Share Tech Mono', monospace;
+            font-size: 13px;
+            width: 100%;
+            outline: none;
+            clip-path: polygon(8px 0%, 100% 0%, 100% calc(100% - 8px), calc(100% - 8px) 100%, 0% 100%, 0% 8px);
+            transition: border-color 0.2s;
+        }
+        .comp-input:focus {
+            border-color: var(--amber-dim);
+            box-shadow: 0 0 10px rgba(232,160,32,0.1) inset;
+        }
+        .comp-input::placeholder { color: var(--text-dim); }
+        select.comp-input option { background: var(--bg2); }
+
+        .comp-btn {
+            background: linear-gradient(135deg, #c07800, #e8a020);
+            color: #080808;
+            font-family: 'Orbitron', monospace;
+            font-size: 11px;
+            font-weight: 700;
+            letter-spacing: 0.15em;
+            padding: 12px 24px;
+            border: none;
+            cursor: pointer;
+            clip-path: polygon(8px 0%, 100% 0%, calc(100% - 8px) 100%, 0% 100%);
+            transition: all 0.2s;
+            text-transform: uppercase;
+            white-space: nowrap;
+        }
+        .comp-btn:hover {
+            background: linear-gradient(135deg, #e8a020, #ffb830);
+            box-shadow: 0 0 20px rgba(232,160,32,0.4);
+        }
+        .comp-btn:active { transform: scale(0.97); }
+
+        .comp-table { width: 100%; border-collapse: collapse; }
+        .comp-table thead tr {
+            background: var(--bg);
+            border-bottom: 1px solid var(--amber-dim);
+        }
+        .comp-table th {
+            font-family: 'Share Tech Mono', monospace;
+            font-size: 10px;
+            letter-spacing: 0.2em;
+            color: var(--amber-dim);
+            padding: 12px 16px;
+            text-transform: uppercase;
+        }
+        .comp-table tbody tr {
+            border-bottom: 1px solid rgba(58,42,16,0.5);
+            transition: background 0.15s;
+        }
+        .comp-table tbody tr:hover { background: rgba(232,160,32,0.03); }
+        .comp-table td { padding: 12px 16px; font-weight: 600; font-size: 14px; }
+
+        .badge {
+            font-family: 'Share Tech Mono', monospace;
+            font-size: 9px;
+            letter-spacing: 0.1em;
+            padding: 3px 10px;
+            clip-path: polygon(6px 0%, 100% 0%, calc(100% - 6px) 100%, 0% 100%);
+            text-transform: uppercase;
+            display: inline-block;
+        }
+        .badge-entrada { background: rgba(68,187,68,0.1); color: var(--green); border: 1px solid rgba(68,187,68,0.3); }
+        .badge-saida   { background: rgba(204,34,0,0.1);  color: var(--red);   border: 1px solid rgba(204,34,0,0.3); }
+
+        .filter-btn {
+            font-family: 'Share Tech Mono', monospace;
+            font-size: 10px;
+            letter-spacing: 0.1em;
+            padding: 5px 14px;
+            border: 1px solid var(--border);
+            background: var(--bg2);
+            color: var(--text-dim);
+            clip-path: polygon(6px 0%, 100% 0%, calc(100% - 6px) 100%, 0% 100%);
+            cursor: pointer;
+            transition: all 0.2s;
+            text-transform: uppercase;
+        }
+        .filter-btn:hover, .filter-btn.ativo {
+            border-color: var(--amber);
+            color: var(--amber);
+            background: rgba(232,160,32,0.08);
+            text-shadow: 0 0 6px var(--amber);
+        }
+
+        .action-edit {
+            font-family: 'Share Tech Mono', monospace;
+            font-size: 10px;
+            color: var(--amber-dim);
+            text-decoration: none;
+            letter-spacing: 0.1em;
+            transition: all 0.2s;
+            cursor: pointer;
+        }
+        .action-edit:hover { color: var(--amber); text-shadow: 0 0 6px var(--amber); }
+
+        .action-del {
+            font-family: 'Share Tech Mono', monospace;
+            font-size: 10px;
+            color: var(--red-dim);
+            letter-spacing: 0.1em;
+            transition: all 0.2s;
+            background: none;
+            border: none;
+            cursor: pointer;
+        }
+        .action-del:hover { color: var(--red); text-shadow: 0 0 6px var(--red); }
+
+        .panel {
+            background: var(--bg2);
+            border: 1px solid var(--border);
+            position: relative;
+        }
+        .panel::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(135deg, rgba(232,160,32,0.03) 0%, transparent 50%);
+            pointer-events: none;
+        }
+
+        .modal-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.85);
+            z-index: 1000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            backdrop-filter: blur(2px);
+        }
+        .modal-overlay.hidden { display: none; }
+        .modal-box {
+            background: var(--bg2);
+            border: 1px solid var(--amber-dim);
+            padding: 2rem;
+            width: 100%;
+            max-width: 480px;
+            clip-path: polygon(16px 0%, 100% 0%, 100% calc(100% - 16px), calc(100% - 16px) 100%, 0% 100%, 0% 16px);
+            position: relative;
+        }
+        .modal-box::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; right: 0;
+            height: 2px;
+            background: linear-gradient(90deg, transparent, var(--amber), transparent);
+        }
+
+        .diag-line {
+            height: 1px;
+            background: linear-gradient(90deg, transparent, var(--amber-dim), transparent);
+            margin: 1.5rem 0;
+        }
+
+        ::-webkit-scrollbar { width: 4px; height: 4px; }
+        ::-webkit-scrollbar-track { background: var(--bg); }
+        ::-webkit-scrollbar-thumb { background: var(--amber-dim); }
+    </style>
+</head>
+
+<body>
+    <div style="max-width:900px; margin:0 auto; padding:2rem 1rem;">
+
+        <!-- Header -->
+        <header style="margin-bottom:2rem; padding-bottom:1rem; border-bottom:1px solid var(--border);">
+            <div style="display:flex; align-items:baseline; gap:1rem;">
+                <h1 class="orbitron amber-glow" style="font-size:1.4rem; font-weight:900; letter-spacing:0.15em;">COMP</h1>
+                <span class="mono" style="font-size:11px; color:var(--text-dim); letter-spacing:0.2em;">// FINANCE TERMINAL v2.6</span>
+                <span class="mono blink amber" style="font-size:11px; margin-left:auto;">█</span>
+            </div>
+            <div style="margin-top:4px;">
+                <span class="mono" style="font-size:10px; color:var(--text-dim); letter-spacing:0.15em;">
+                    SISTEMA DE CONTROLE FINANCEIRO &gt;&gt; ACESSO AUTORIZADO
+                </span>
+            </div>
+        </header>
+
+        <!-- Seletor de Meses -->
+        <div style="margin-bottom:1.5rem;">
+            <div class="label" style="margin-bottom:8px;">&gt; SELECIONAR PERÍODO</div>
+            <nav style="display:flex; gap:8px; overflow-x:auto; padding-bottom:4px;">
+                {{$current := .MesAtual}}
+                {{range .MesesDoAno}}
+                <a href="/?mes={{.}}" class="month-btn {{if eq . $current}}active{{end}}">{{.}}</a>
+                {{end}}
+            </nav>
+        </div>
+
+        <div class="diag-line"></div>
+
+        <!-- Cards -->
+        <div style="display:grid; grid-template-columns:repeat(4,1fr); gap:12px; margin-bottom:1.5rem;">
+            <div class="stat-card">
+                <div class="label">&gt; ENTRADA</div>
+                <h2 id="total-ganhos" class="orbitron green-glow" style="font-size:1.2rem; font-weight:700; margin-top:6px;">R$ {{.Ganhos}}</h2>
+            </div>
+            <div class="stat-card">
+                <div class="label">&gt; SAÍDA</div>
+                <h2 id="total-gastos" class="orbitron red-glow" style="font-size:1.2rem; font-weight:700; margin-top:6px;">R$ {{.Gastos}}</h2>
+            </div>
+            <div class="stat-card">
+                <div class="label">&gt; INVEST.</div>
+                <h2 id="total-investido" class="orbitron amber-glow" style="font-size:1.2rem; font-weight:700; margin-top:6px;">R$ {{.Investido}}</h2>
+            </div>
+            <div class="stat-card">
+                <div class="label">&gt; SALDO</div>
+                <h2 id="total-saldo" class="orbitron {{if .SaldoNegativo}}red-glow{{else}}amber-glow{{end}}" style="font-size:1.2rem; font-weight:700; margin-top:6px;">R$ {{.Saldo}}</h2>
+            </div>
+        </div>
+
+        <!-- Gráficos -->
+        <div class="panel" style="padding:1.25rem; margin-bottom:1.5rem;">
+            <div class="label" style="margin-bottom:1rem;">&gt; ANÁLISE DE FLUXO // {{.MesAtual}}</div>
+            <div style="display:flex; gap:1.5rem; height:220px;">
+                <div style="flex:1; display:flex; flex-direction:column; align-items:center;">
+                    <div class="label green-glow" style="margin-bottom:8px; font-size:9px;">ENTRADAS</div>
+                    <div style="flex:1; width:100%; position:relative;">
+                        <canvas id="entradaChart"></canvas>
+                    </div>
+                </div>
+                <div style="width:1px; background:var(--border);"></div>
+                <div style="flex:1; display:flex; flex-direction:column; align-items:center;">
+                    <div class="label red-glow" style="margin-bottom:8px; font-size:9px;">SAÍDAS</div>
+                    <div style="flex:1; width:100%; position:relative;">
+                        <canvas id="saidaChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Form -->
+        <div class="panel" style="padding:1.25rem; margin-bottom:1.5rem;">
+            <div class="label" style="margin-bottom:1rem;">&gt; REGISTRAR TRANSAÇÃO</div>
+            <form action="/add" method="POST" style="display:flex; flex-wrap:wrap; gap:12px; align-items:flex-end;">
+                <input type="hidden" name="mes" value="{{.MesAtual}}">
+                <div style="flex:2; min-width:160px;">
+                    <div class="label" style="margin-bottom:6px;">DESCRIÇÃO</div>
+                    <input type="text" name="descricao" placeholder="Ex: Aluguel, Job..." required class="comp-input">
+                </div>
+                <div style="width:110px;">
+                    <div class="label" style="margin-bottom:6px;">VALOR</div>
+                    <input type="number" name="valor" placeholder="0" required class="comp-input">
+                </div>
+                <div style="width:140px;">
+                    <div class="label" style="margin-bottom:6px;">NATUREZA</div>
+                    <select name="natureza" class="comp-input">
+                        <option value="entrada">ENTRADA +</option>
+                        <option value="saida">SAÍDA -</option>
+                    </select>
+                </div>
+                <div style="width:160px;">
+                    <div class="label" style="margin-bottom:6px;">CATEGORIA</div>
+                    <select name="categoria" class="comp-input">
+                        <option value="salario">SALÁRIO</option>
+                        <option value="pix">PIX</option>
+                        <option value="rendimento">RENDIMENTO</option>
+                        <option value="cartao">CARTÃO</option>
+                        <option value="fixo">FIXO</option>
+                        <option value="investimento">INVEST.</option>
+                        <option value="lazer">LAZER</option>
+                    </select>
+                </div>
+                <button type="submit" class="comp-btn">EXEC</button>
+            </form>
+        </div>
+
+        <!-- Filtros -->
+        <div style="display:flex; gap:8px; margin-bottom:12px; flex-wrap:wrap; justify-content:center;">
+            <button onclick="filtrar('todos', this)" class="filter-btn ativo">ALL</button>
+            <button onclick="filtrar('salario', this)" class="filter-btn">SAL</button>
+            <button onclick="filtrar('pix', this)" class="filter-btn">PIX</button>
+            <button onclick="filtrar('rendimento', this)" class="filter-btn">REND</button>
+            <button onclick="filtrar('cartao', this)" class="filter-btn">CARTÃO</button>
+            <button onclick="filtrar('fixo', this)" class="filter-btn">FIXO</button>
+            <button onclick="filtrar('investimento', this)" class="filter-btn">INVEST</button>
+            <button onclick="filtrar('lazer', this)" class="filter-btn">LAZER</button>
+        </div>
+
+        <!-- Tabela -->
+        <div class="panel" style="overflow:hidden;">
+            <table class="comp-table">
+                <thead>
+                    <tr>
+                        <th style="text-align:left;">AÇÕES</th>
+                        <th style="text-align:left;">DESCRIÇÃO</th>
+                        <th style="text-align:left;">TIPO</th>
+                        <th style="text-align:right;">VALOR</th>
+                    </tr>
+                </thead>
+                <tbody id="lista-transacoes">
+                    {{range .Transacoes}}
+                    <tr class="slide-in">
+                        <td style="white-space:nowrap;">
+                            <a href="#"
+                                hx-get="/edit/{{.ID}}"
+                                hx-target="#modal-content"
+                                hx-swap="innerHTML"
+                                onclick="document.getElementById('modal-overlay').classList.remove('hidden')"
+                                class="action-edit">EDIT</a>
+                            <form action="/delete/{{.ID}}" method="POST" style="display:inline; margin-left:12px;">
+                                <input type="hidden" name="mes" value="{{.Mes}}">
+                                <button type="submit"
+                                    onclick="return confirm('CONFIRMAR EXCLUSÃO?')"
+                                    class="action-del">DEL</button>
+                            </form>
+                        </td>
+                        <td style="color:var(--text); font-weight:600;">{{.Descricao}}</td>
+                        <td>
+                            <span class="badge {{if eq .Natureza `entrada`}}badge-entrada{{else}}badge-saida{{end}}">
+                                {{.Natureza}} // {{.Categoria}}
+                            </span>
+                        </td>
+                        <td style="text-align:right; font-family:'Share Tech Mono',monospace; color:var(--amber);">
+                            R$ {{.Valor}}
+                        </td>
+                    </tr>
+                    {{end}}
+                </tbody>
+            </table>
+        </div>
+
+    </div>
+
+    <!-- Modal -->
+    <div id="modal-overlay" class="modal-overlay hidden">
+        <div class="modal-box">
+            <div class="label" style="margin-bottom:1rem;">&gt; EDITAR REGISTRO</div>
+            <div id="modal-content"></div>
+        </div>
+    </div>
+
+    <script>
+        const cores = {
+            salario:      '#44bb44',
+            pix:          '#e8a020',
+            rendimento:   '#ffcc44',
+            cartao:       '#cc2200',
+            fixo:         '#ff6600',
+            investimento: '#4488ff',
+            lazer:        '#cc44cc',
+        }
+
+        function renderizarRosca(canvasId, dados) {
+            if (!dados || dados.length === 0) return
+            const ctx = document.getElementById(canvasId).getContext('2d')
+            new Chart(ctx, {
+                type: 'doughnut',
+                data: {
+                    labels: dados.map(d => d.Categoria.toUpperCase()),
+                    datasets: [{
+                        data: dados.map(d => d.Total),
+                        backgroundColor: dados.map(d => (cores[d.Categoria] || '#888') + '33'),
+                        borderColor: dados.map(d => cores[d.Categoria] || '#888'),
+                        borderWidth: 2,
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'bottom',
+                            labels: {
+                                color: '#887050',
+                                font: { family: 'Share Tech Mono', size: 9 },
+                                boxWidth: 10,
+                                padding: 8
+                            }
+                        }
+                    },
+                    cutout: '65%',
+                }
+            })
+        }
+
+        const entradas = JSON.parse('{{.EntradaCatJSON}}') || []
+        const saidas   = JSON.parse('{{.SaidaCatJSON}}')   || []
+
+        if (entradas.length > 0) renderizarRosca('entradaChart', entradas)
+        if (saidas.length > 0)   renderizarRosca('saidaChart', saidas)
+
+        function filtrar(categoria, btn) {
+            document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('ativo'))
+            btn.classList.add('ativo')
+            document.querySelectorAll('#lista-transacoes tr').forEach(linha => {
+                if (categoria === 'todos') {
+                    linha.style.display = ''
+                } else {
+                    const tipo = linha.querySelector('span')?.innerText.toLowerCase() || ''
+                    linha.style.display = tipo.includes(categoria) ? '' : 'none'
+                }
+            })
+        }
+
+        document.getElementById('modal-overlay').addEventListener('click', function(e) {
+            if (e.target === this) this.classList.add('hidden')
+        })
+    </script>
+</body>
+</html>

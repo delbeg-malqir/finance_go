@@ -1,0 +1,44 @@
+<div>
+    <div class="flex justify-between items-center mb-6">
+        <h2 class="text-lg font-black text-cyan-400">Editar Transação</h2>
+        <button onclick="document.getElementById('modal-overlay').classList.add('hidden')"
+            class="text-gray-400 hover:text-white text-xl font-bold">✕</button>
+    </div>
+
+    <form action="/edit/{{.Transacao.ID}}" method="POST" class="flex flex-col gap-4">
+        <div>
+            <label class="block text-[10px] font-black mb-2 text-gray-500 uppercase tracking-widest">Descrição</label>
+            <input type="text" name="descricao" value="{{.Transacao.Descricao}}" required
+                class="bg-gray-900 p-3 rounded-lg w-full border border-gray-700 focus:border-cyan-500 text-white outline-none">
+        </div>
+        <div>
+            <label class="block text-[10px] font-black mb-2 text-gray-500 uppercase tracking-widest">Valor</label>
+            <input type="number" name="valor" value="{{.Transacao.Valor}}" required
+                class="bg-gray-900 p-3 rounded-lg w-full border border-gray-700 focus:border-cyan-500 text-white outline-none">
+        </div>
+        <div>
+            <label class="block text-[10px] font-black mb-2 text-gray-500 uppercase tracking-widest">Natureza</label>
+            <select name="natureza" class="bg-gray-900 p-3 rounded-lg w-full border border-gray-700 focus:border-cyan-500 text-white outline-none">
+                <option value="entrada" {{if eq .Transacao.Natureza "entrada"}}selected{{end}}>Entrada (+)</option>
+                <option value="saida" {{if eq .Transacao.Natureza "saida"}}selected{{end}}>Saída (-)</option>
+            </select>
+        </div>
+        <div>
+            <label class="block text-[10px] font-black mb-2 text-gray-500 uppercase tracking-widest">Categoria</label>
+            <select name="categoria" class="bg-gray-900 p-3 rounded-lg w-full border border-gray-700 focus:border-cyan-500 text-white outline-none">
+                <option value="salario" {{if eq .Transacao.Categoria "salario"}}selected{{end}}>Salário</option>
+                <option value="pix" {{if eq .Transacao.Categoria "pix"}}selected{{end}}>PIX Recebido</option>
+                <option value="rendimento" {{if eq .Transacao.Categoria "rendimento"}}selected{{end}}>Rendimento</option>
+                <option value="cartao" {{if eq .Transacao.Categoria "cartao"}}selected{{end}}>Cartão de Crédito</option>
+                <option value="fixo" {{if eq .Transacao.Categoria "fixo"}}selected{{end}}>Gasto Fixo</option>
+                <option value="investimento" {{if eq .Transacao.Categoria "investimento"}}selected{{end}}>Investimento</option>
+                <option value="lazer" {{if eq .Transacao.Categoria "lazer"}}selected{{end}}>Lazer</option>
+            </select>
+        </div>
+        <input type="hidden" name="mes" value="{{.Transacao.Mes}}">
+        <button type="submit"
+            class="bg-cyan-600 hover:bg-cyan-500 text-white px-8 py-3 rounded-lg font-black uppercase transition-all active:scale-95">
+            Salvar
+        </button>
+    </form>
+</div>
